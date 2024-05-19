@@ -24,6 +24,7 @@ num_barcodes = 96
 barcode_length = 8
 output_merged_fastq = "output/merged.fastq"
 
+
 def is_multiplexed(fastq_file):
     with open(fastq_file, "r") as f:
         # Read the first few lines to check for barcode or index sequences
@@ -36,6 +37,7 @@ def is_multiplexed(fastq_file):
                     if len(barcode) > 0:  # Check if the barcode is not empty
                         return True
     return False
+
 
 # Example usage
 fastq_file = "output/demultiplex_test2_R1.fasta"

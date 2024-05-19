@@ -7,7 +7,7 @@ import pandas as pd
 
 # Step 1: Read FASTA files
 sequences = []
-test_data_file_path='data/Assessment_datasets_its1_powerlaw/35sp/jeu1/ITS1/Powerlaw/Archive/35sp_Powerlaw-01_R1.fastq'
+test_data_file_path= 'data/Assessment_datasets_its1_powerlaw/35sp/jeu1/ITS1/Powerlaw/Archive/35sp_Powerlaw-01_R1.fastq'
 
 for record in SeqIO.parse(test_data_file_path, "fastq"):
     sequences.append(str(record.seq))
