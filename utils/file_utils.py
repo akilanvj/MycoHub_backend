@@ -39,8 +39,12 @@ class FileUtils:
             return os.path.splitext(base_name)[0]
         elif file_type == 'extension':
             return os.path.splitext(base_name)[1]
+        elif file_type == 'dir':
+            return os.path.dirname(file_path)
         else:
             return None
+
+
 
     @staticmethod
     def convert_bytes_to_mb(size_in_bytes):

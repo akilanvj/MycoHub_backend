@@ -4,13 +4,18 @@ import math
 import os
 from datetime import datetime
 
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from redis import Redis
 from rq import Queue
 
+from utils.file_parser import FileParser
+from utils.file_utils import FileUtils
+
 UPLOAD_FOLDER = "uploads"
+
+PROCESSED_FOLDER = "processed"
 # Maximum allowed file size in bytes (change this to your desired limit)
 MAX_FILE_SIZE = 100 * 1024 * 1024
 
@@ -23,6 +28,26 @@ def convert_bytes_to_mb(size_bytes):
     p = math.pow(1024, i)
     s = round(size_bytes / p, 2)
     return "%s %s" % (s, size_name[i])
+
+
+def convert_to_readable_date(date_str):
+    """
+    Convert a date string in the format '2024-06-09_16-27-33' to a more readable format '09 Jun 2024 16:27:33'.
+
+    :param date_str: Date string to be converted
+    :return: Formatted date string
+    """
+    # Define the format of the input date string
+    input_format = "%Y-%m-%d_%H-%M-%S"
+
+    # Parse the date string to a datetime object
+    dt = datetime.strptime(date_str, input_format)
+
+    # Define the desired output format
+    output_format = "%d %b %Y %H:%M:%S"
+
+    # Format the datetime object to the desired string representation
+    return dt.strftime(output_format)
 
 
 def generate_timestamp_random():
@@ -72,11 +97,16 @@ class FileUploader:
         @self.app.get("/files/all")
         async def list_uploaded_files():
             files = []
+            index = 1
             for folder in os.listdir(UPLOAD_FOLDER):
                 folder_path = os.path.join(UPLOAD_FOLDER, folder)
                 if os.path.isdir(folder_path):
                     for file_name in os.listdir(folder_path):
-                        files.append({"filename": file_name, "folder": folder})
+                        if os.path.isfile(os.path.join(folder_path, file_name)):
+                            file_size = convert_bytes_to_mb(os.path.getsize(os.path.join(folder_path, file_name)))
+                            files.append({"filename": file_name, "folder": folder, "id": index, "filesize": file_size,
+                                          "uploadeddate": convert_to_readable_date(folder)})
+                            index = index + 1
             return files
 
         @self.app.post("/upload/")
@@ -110,6 +140,38 @@ class FileUploader:
             except Exception as e:
                 logging.exception("An error occurred while uploading the file", e)
                 return JSONResponse(content={"status": "error", "code": 500, "error": str(e)})
+
+        @self.app.get("/converter/")
+        async def parse_fastq_to_fasta_file(source_folder_path, source_file_name):
+            files = []
+            index = 1
+            for folder in os.listdir(UPLOAD_FOLDER):
+                folder_path = os.path.join(UPLOAD_FOLDER, folder)
+                if os.path.isdir(folder_path):
+                    for file_name in os.listdir(folder_path):
+                        if file_name.__eq__(str(source_file_name).strip()):
+                            input_fastq_gz = os.path.join(folder_path, file_name)
+                            output_fasta = FileParser.fastq_gz_to_fasta(input_fastq_gz)
+                            fastq_base_name = FileUtils.extract_base_name(input_fastq_gz, 'full')
+                            print(f"Conversion from \"{fastq_base_name}\" to \"{output_fasta}\" completed.")
+                            file_size = convert_bytes_to_mb(os.path.getsize(output_fasta))
+                            files.append({"filename": FileUtils.extract_base_name(output_fasta, "full"),
+                                          "folder": FileUtils.extract_base_name(output_fasta, "dir"), "id": index,
+                                          "filesize": file_size})
+                            index = index + 1
+
+            if len(files) == 0:
+                return {
+                    "success": False,
+                    "data": dict(message="File(s) not available",
+                                 folder_path=source_folder_path,
+                                 file_path=source_file_name)
+                }
+            else:
+                return {
+                    "success": True,
+                    "data": files
+                }
 
 
 app = FastAPI()
