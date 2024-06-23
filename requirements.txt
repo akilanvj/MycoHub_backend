@@ -45,10 +45,12 @@ pillow==10.3.0
 platformdirs==4.2.2
 plotly==5.22.0
 pooch==1.8.1
+psutil==5.9.8
 psycopg2==2.9.9
 psycopg2-binary==2.9.9
 pydantic==2.7.1
 pydantic_core==2.18.2
+pyhmmer==0.10.12
 pyparsing==3.1.2
 python-dateutil==2.9.0.post0
 python-multipart==0.0.9

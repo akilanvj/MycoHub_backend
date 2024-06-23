@@ -141,6 +141,18 @@ class FileUploader:
                 logging.exception("An error occurred while uploading the file", e)
                 return JSONResponse(content={"status": "error", "code": 500, "error": str(e)})
 
+        @app.get("/upload/total_files")
+        def get_total_files():
+            directory = UPLOAD_FOLDER
+            total_files = len([f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))])
+            return JSONResponse(content={"type": "uploaded", "total_files": total_files})
+
+        @app.get("/processed/total_files")
+        def get_total_processed_files():
+            directory = PROCESSED_FOLDER
+            total_files = len([f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))])
+            return JSONResponse(content={"type": "processed", "total_files": total_files})
+
         @self.app.get("/converter/")
         async def parse_fastq_to_fasta_file(source_folder_path, source_file_name):
             files = []
